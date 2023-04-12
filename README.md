@@ -73,11 +73,3 @@ cargo run
 ```
 
 After that, you can enter a λ-term and press enter to parse it. The REPL will print the parsed JSON representation of the term.
-
-
-### TODO
-
-- [ ] **Provide better error messages**: Instead of returning a **`Term::Null`** when parsing fails, the parser should return a `Result` type with an appropriate error message.
-- [ ] **Implement α-conversion**: α-conversion is the process of renaming bound variables in a λ-term to avoid name clashes. Implementing α-conversion in the parser could be useful for comparing λ-terms for α-equivalence or performing β-reductions.
-- [ ] **Perform β-reduction**: Implement a function that perform β-reductions on parsed λ-terms. β-reductions is the process of applying a function to its argument, essentially "reducing" the expression to a simpler form.
-- [ ] **Implement η-conversion**: η-conversion is a transformation that allows you to express equivalent λ-terms in a more concise form. Implementing η-conversion would enable you to simplify λ-terms and compare them for η-equivalence.
