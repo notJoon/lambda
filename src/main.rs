@@ -1,7 +1,8 @@
+mod error;
 mod parser;
 mod term;
 
-use crate::{parser::parse, term::term_to_json};
+use crate::{term::term_to_json, parser::parse};
 use std::io::{self, Write};
 
 fn main() {
@@ -23,9 +24,14 @@ fn main() {
             break;
         }
 
-        let term = parse(&input);
-        let json = term_to_json(&term);
-
-        println!("\n{}\n", serde_json::to_string_pretty(&json).unwrap());
+        match parse(&input.trim()) {
+            Ok(term) => {
+                let json = term_to_json(&term);
+                println!("\n{}\n", serde_json::to_string_pretty(&json).unwrap());
+            }
+            Err(err) => {
+                println!("\nError: {}\n", err);
+            }
+        }
     }
 }
