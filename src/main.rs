@@ -2,11 +2,11 @@ mod error;
 mod parser;
 mod term;
 
-use crate::{term::term_to_json, parser::parse};
+use crate::parser::parse;
 use std::io::{self, Write};
 
 fn main() {
-    print!("Welcome to the lambda calculus REPL!\n");
+    println!("Welcome to the lambda calculus REPL!");
     print!("Type `exit` or `quit` to exit.\n\n");
 
     // Loop the REPL until the user exits
@@ -24,14 +24,12 @@ fn main() {
             break;
         }
 
-        match parse(&input.trim()) {
+        match parse(input.trim()) {
             Ok(term) => {
-                let json = term_to_json(&term);
-                println!("\n{}\n", serde_json::to_string_pretty(&json).unwrap());
+                let term = serde_json::to_string_pretty(&term).unwrap();
+                println!("\n{term}\n")
             }
-            Err(err) => {
-                println!("\nError: {}\n", err);
-            }
+            Err(e) => println!("{e}"),
         }
     }
 }
