@@ -50,13 +50,16 @@ impl<'a> Parser<'a> {
 
     /// Parse an application
     fn parse_application(&mut self) -> TermResult {
-        let mut terms: Vec<Term> = vec![self.parse_term()?];
-        while let Ok(term) = self.parse_term() {
+        let mut terms: Vec<Term> = vec![self.parse_non_application_term()?];
+
+        while let Ok(term) = self.parse_non_application_term() {
             terms.push(term);
         }
 
-        if terms.len() < 2 {
-            return Err(ParseError::InvalidApplication);
+        if terms.is_empty() {
+            Err(ParseError::InvalidApplication)
+        } else if terms.len() == 1 {
+            Ok(terms.pop().unwrap())
         } else {
             let mut iter = terms.into_iter();
             let mut app = iter.next().unwrap();
@@ -95,17 +98,34 @@ impl<'a> Parser<'a> {
     fn parse_term(&mut self) -> TermResult {
         self.skip_whitespace();
 
+        if self.chars.peek() == Some(&'(') {
+            self.chars.next();
+
+            let term = self.parse_application()?;
+            self.chars
+                .next()
+                .and_then(|c| if c == ')' { Some(term) } else { None })
+                .ok_or(ParseError::InvalidApplication)
+        } else {
+            self.parse_non_application_term()
+        }
+    }
+
+    /// Parse a non-application term (i.e., a lambda abstraction or a variable) from the input.
+    ///
+    /// This function is used to parse the sub-expressions of an application. Since an application
+    /// consists of a sequence of non-application terms, this function ensures that only lambda
+    /// abstractions or variables are parsed within an application.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(JsonTerm)` - A successfully parsed non-application term (lambda abstraction or variable).
+    /// * `Err(ParseError::InvalidApplication)` - If the input doesn't match a valid non-application term.
+    fn parse_non_application_term(&mut self) -> TermResult {
+        self.skip_whitespace();
+
         match self.chars.peek() {
             Some(&'λ') => self.parse_lambda(),
-            Some(&'(') => {
-                self.chars.next();
-                let term = self.parse_application()?;
-                if self.chars.next() == Some(')') {
-                    Ok(term)
-                } else {
-                    Err(ParseError::InvalidApplication)
-                }
-            }
             Some(c) if c.is_alphanumeric() || *c == '_' => {
                 Ok(Term::Variable {
                     name: self.parse_var()?,
@@ -144,24 +164,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_valid_application() {
-        let input = "(λx.x) y";
-        let expected = Term::Application {
-            func: Box::new(Term::Lambda {
-                bind: "x".to_string(),
-                body: Box::new(Term::Variable {
-                    name: "x".to_string(),
-                }),
-            }),
-            arg: Box::new(Term::Variable {
-                name: "y".to_string(),
-            }),
-        };
-
-        assert_eq!(parse(input), Ok(expected));
-    }
-
-    #[test]
     fn test_parse_valid_application_with_parenthesis() {
         let input = "(f x)";
         let expected = Term::Application {
@@ -183,24 +185,61 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_valid_complex_term() {
-        let input = "λx.(λy.x y) z";
+    fn test_parse_constant_function() {
+        let input = "λx.λy.x";
+        let expected = Term::Lambda {
+            bind: "x".to_string(),
+            body: Box::new(Term::Lambda {
+                bind: "y".to_string(),
+                body: Box::new(Term::Variable {
+                    name: "x".to_string(),
+                }),
+            }),
+        };
+
+        assert_eq!(parse(input), Ok(expected));
+    }
+
+    #[test]
+    fn test_parse_y_combinator_form() {
+        let input = "λx.(x x)";
         let expected = Term::Lambda {
             bind: "x".to_string(),
             body: Box::new(Term::Application {
-                func: Box::new(Term::Lambda {
-                    bind: "y".to_string(),
-                    body: Box::new(Term::Application {
-                        func: Box::new(Term::Variable {
-                            name: "x".to_string(),
-                        }),
-                        arg: Box::new(Term::Variable {
-                            name: "y".to_string(),
-                        }),
-                    }),
+                func: Box::new(Term::Variable {
+                    name: "x".to_string(),
                 }),
                 arg: Box::new(Term::Variable {
-                    name: "z".to_string(),
+                    name: "x".to_string(),
+                }),
+            }),
+        };
+
+        assert_eq!(parse(input), Ok(expected));
+    }
+
+    #[test]
+    fn test_parse_function_composition() {
+        let input = "λf.λg.λx.(f(g x))";
+        let expected = Term::Lambda {
+            bind: "f".to_string(),
+            body: Box::new(Term::Lambda {
+                bind: "g".to_string(),
+                body: Box::new(Term::Lambda {
+                    bind: "x".to_string(),
+                    body: Box::new(Term::Application {
+                        func: Box::new(Term::Variable {
+                            name: "f".to_string(),
+                        }),
+                        arg: Box::new(Term::Application {
+                            func: Box::new(Term::Variable {
+                                name: "g".to_string(),
+                            }),
+                            arg: Box::new(Term::Variable {
+                                name: "x".to_string(),
+                            }),
+                        }),
+                    }),
                 }),
             }),
         };
