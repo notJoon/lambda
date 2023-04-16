@@ -126,11 +126,9 @@ impl<'a> Parser<'a> {
 
         match self.chars.peek() {
             Some(&'λ') => self.parse_lambda(),
-            Some(c) if c.is_alphanumeric() || *c == '_' => {
-                Ok(Term::Variable {
-                    name: self.parse_var()?,
-                })
-            }
+            Some(c) if c.is_alphanumeric() || *c == '_' => Ok(Term::Variable {
+                name: self.parse_var()?,
+            }),
             _ => Err(ParseError::InvalidApplication),
         }
     }

@@ -1,5 +1,6 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum Term {
@@ -9,23 +10,19 @@ pub enum Term {
     Null,
 }
 
-/// Convert a parsed term to a JSON value.
-pub fn term_to_json(term: &Term) -> serde_json::Value {
-    match term {
-        Term::Lambda { bind, body } => json!({
-            "tag": "lambda",
-            "bind": bind,
-            "body": term_to_json(body),
-        }),
-        Term::Application { func, arg } => json!({
-            "tag": "application",
-            "func": term_to_json(func),
-            "arg": term_to_json(arg),
-        }),
-        Term::Variable { name } => json!({
-            "tag": "var",
-            "name": name,
-        }),
-        Term::Null => serde_json::Value::Null,
+impl Display for Term {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Term::Lambda { bind, body } => write!(
+                f,
+                r#"{{"tag": "lambda", "bind": "{bind}", "body": {body}}}"#,
+            ),
+            Term::Application { func, arg } => write!(
+                f,
+                r#"{{"tag": "application", "func": {func}, "arg": {arg}}}"#,
+            ),
+            Term::Variable { name } => write!(f, r#"{{"tag": "var", "name": "{name}"}}"#),
+            Term::Null => write!(f, "null"),
+        }
     }
 }
