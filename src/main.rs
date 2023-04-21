@@ -9,7 +9,10 @@ fn main() {
     println!("Welcome to the lambda calculus REPL!");
     print!("Type `exit` or `quit` to exit.\n\n");
 
-    // Loop the REPL until the user exits
+    run_repl();
+}
+
+fn run_repl() {
     loop {
         print!("> ");
         io::stdout().flush().unwrap();
